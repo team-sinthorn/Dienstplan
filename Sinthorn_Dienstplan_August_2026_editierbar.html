@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#163b2c">
+  <title>Sinthorn Dienstplan</title>
+  <style>
+*{box-sizing:border-box}
+:root{
+  --bg:#f3f5f2;
+  --card:#fff;
+  --text:#17201b;
+  --muted:#68736c;
+  --green:#163b2c;
+  --green-soft:#edf3ef;
+  --line:#e2e7e3;
+  --closed:#eef0f2;
+}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+.wrap{width:min(1080px,calc(100% - 24px));margin:28px auto 50px}
+.hero{
+  background:var(--green);
+  color:#fff;
+  border-radius:24px;
+  padding:26px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  box-shadow:0 15px 45px rgba(22,59,44,.15);
+}
+.hero h1{margin:2px 0 7px;font-size:clamp(30px,6vw,46px)}
+.kicker{font-weight:800;letter-spacing:.16em;font-size:12px;margin:0;opacity:.72}
+.subtitle{margin:0;color:rgba(255,255,255,.75);line-height:1.45}
+.month-badge{
+  flex:0 0 auto;
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:16px;
+  padding:12px 14px;
+  font-weight:800;
+  font-size:14px;
+}
+.panel{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:20px;
+  margin-top:16px;
+  padding:18px;
+  box-shadow:0 8px 28px rgba(31,45,36,.05);
+}
+.controls label{
+  display:block;
+  font-size:13px;
+  font-weight:800;
+  margin-bottom:8px;
+  color:var(--muted);
+}
+select{
+  width:100%;
+  padding:14px 15px;
+  border-radius:13px;
+  border:1px solid #cfd7d1;
+  background:#fff;
+  color:var(--text);
+  font-size:16px;
+}
+.person-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:15px}
+.person-head h2{margin:0;font-size:24px}
+.shift-count{color:var(--muted);font-size:14px}
+.calendar{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:8px;
+}
+.weekday{
+  text-align:center;
+  padding:6px 2px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+}
+.day{
+  min-height:94px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:10px;
+  background:#fff;
+}
+.day.empty{visibility:hidden}
+.day.closed{background:var(--closed)}
+.date-num{font-size:13px;color:var(--muted);font-weight:700}
+.time{margin-top:13px;font-weight:900;font-size:18px;color:var(--green)}
+.off{margin-top:13px;color:#9aa29d;font-size:14px}
+.closed-label{margin-top:13px;color:#818991;font-size:13px;font-weight:700}
+.table-panel{overflow:auto}
+.hidden{display:none}
+table{width:100%;border-collapse:separate;border-spacing:0;min-width:980px;font-size:13px}
+th,td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:9px;text-align:center}
+th:first-child,td:first-child{border-left:1px solid var(--line);position:sticky;left:0;background:#fff;z-index:2}
+thead th{position:sticky;top:0;background:#f8faf8;z-index:1;font-weight:800}
+thead th:first-child{z-index:3}
+tr:first-child th{border-top:1px solid var(--line)}
+th:first-child{border-top-left-radius:10px}
+thead th:last-child{border-top-right-radius:10px}
+td.work{font-weight:800;color:var(--green);background:var(--green-soft)}
+td.closed-cell{background:var(--closed);color:#92999e}
+.work-summary{
+  margin-top:18px;
+  padding:15px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#f8faf8;
+}
+.work-summary h3{margin:0 0 10px;font-size:15px}
+.work-summary-list{display:grid;gap:6px}
+.work-summary-item{
+  font-weight:700;
+  font-size:14px;
+  padding:7px 9px;
+  background:#fff;
+  border-radius:9px;
+  border:1px solid var(--line);
+}
+
+.edit-box{
+  margin-top:18px;
+  padding:15px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fff;
+}
+.edit-box h3{margin:0 0 10px;font-size:15px}
+.edit-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.edit-grid label{
+  font-size:12px;
+  font-weight:800;
+  color:var(--muted);
+  margin-bottom:5px;
+  display:block;
+}
+.edit-grid select,.edit-grid input{
+  width:100%;
+  padding:11px 12px;
+  border:1px solid #cfd7d1;
+  border-radius:10px;
+  background:#fff;
+  font-size:14px;
+}
+.edit-actions{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
+.edit-actions button{
+  border:0;
+  border-radius:10px;
+  padding:10px 12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.save-btn{background:var(--green);color:#fff}
+.clear-btn{background:#eef1ef;color:var(--text)}
+.reset-btn{background:#f4e9e9;color:#7c2727}
+.edit-note{
+  margin-top:9px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.4;
+}
+@media(max-width:650px){
+  .edit-grid{grid-template-columns:1fr}
+}
+
+.source-note{text-align:center;color:var(--muted);font-size:12px;margin:16px 0}
+@media(max-width:650px){
+  .wrap{margin:14px auto 34px}
+  .hero{padding:21px;border-radius:20px}
+  .month-badge{display:none}
+  .panel{padding:14px;border-radius:17px}
+  .calendar{gap:5px}
+  .weekday{font-size:10px}
+  .day{min-height:78px;padding:7px;border-radius:11px}
+  .time{font-size:15px;margin-top:10px}
+  .off,.closed-label{font-size:11px;margin-top:10px}
+}
+
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div>
+        <p class="kicker">SINTHORN</p>
+        <h1>Sinthorn Dienstplan</h1>
+        <p class="subtitle">Arbeitsplan für August 2026 – wähle einen Namen aus und sieh die Startzeiten.</p>
+      </div>
+      <div class="month-badge">August 2026</div>
+    </header>
+
+    <section class="panel controls">
+      <label for="employeeSelect">Mitarbeiter</label>
+      <select id="employeeSelect">
+        <option value="all">Alle Mitarbeiter</option>
+      </select>
+    </section>
+
+    <section id="personView" class="panel"></section>
+    <section id="allView" class="panel table-panel hidden"></section>
+
+    <p class="source-note">Aus dem fotografierten Dienstplan übertragen. Montag und Dienstag werden als geschlossen angezeigt.</p>
+  </main>
+  <script>
+// ======================================================
+// DIENSTPLAN AUGUST 2026
+// Zeiten aus dem fotografierten Plan übertragen.
+// Wenn etwas falsch ist, hier einfach die Uhrzeit ändern.
+// Kein Eintrag = Frei.
+// ======================================================
+
+const employees = ["Bayan", "Corina", "David", "Kerim", "ohdy", "Neha", "Lea", "Lotti", "Jana", "Sofiya", "Selen", "Anja", "Joschua", "Ela", "ket", "Abby", "Talia", "Jeremy"];
+const basePlan = {
+  "1": {
+    "Bayan": "11:30",
+    "Kerim": "16:30",
+    "ohdy": "18:00",
+    "Neha": "17:00",
+    "Lea": "17:00",
+    "Jana": "11:30",
+    "Selen": "18:00",
+    "Anja": "18:00",
+    "Joschua": "18:00",
+    "Abby": "12:00",
+    "Jeremy": "17:00"
+  },
+  "2": {
+    "Bayan": "11:30",
+    "Kerim": "16:30",
+    "ohdy": "18:00",
+    "Lea": "17:00",
+    "Lotti": "17:00",
+    "Jana": "18:00",
+    "Sofiya": "11:30",
+    "Selen": "18:00",
+    "Joschua": "11:30",
+    "Abby": "12:00"
+  },
+  "3": {},
+  "4": {},
+  "5": {
+    "Kerim": "16:30",
+    "ohdy": "11:30",
+    "Lea": "17:00",
+    "Lotti": "17:00",
+    "Selen": "11:30",
+    "Joschua": "17:00"
+  },
+  "6": {
+    "Kerim": "16:30",
+    "ohdy": "11:30",
+    "Lea": "18:00",
+    "Sofiya": "17:00",
+    "Selen": "11:30",
+    "Joschua": "17:00"
+  },
+  "7": {
+    "Bayan": "16:00",
+    "Kerim": "16:30",
+    "ohdy": "11:30",
+    "Lotti": "17:00",
+    "Sofiya": "18:00",
+    "Selen": "18:00",
+    "Joschua": "17:00"
+  },
+  "8": {
+    "Bayan": "11:30",
+    "Kerim": "16:30",
+    "ohdy": "18:00",
+    "Lotti": "18:00",
+    "Jana": "17:00",
+    "Sofiya": "18:00",
+    "Joschua": "17:00",
+    "Abby": "12:00",
+    "Jeremy": "17:00"
+  },
+  "9": {
+    "Bayan": "11:30",
+    "Kerim": "16:30",
+    "ohdy": "12:00",
+    "Lotti": "17:00",
+    "Jana": "17:00",
+    "Sofiya": "17:00",
+    "Joschua": "18:00",
+    "Abby": "12:00",
+    "Jeremy": "11:30"
+  },
+  "10": {},
+  "11": {},
+  "12": {
+    "Bayan": "11:30",
+    "Corina": "16:30",
+    "Neha": "17:00",
+    "Jana": "18:00"
+  },
+  "13": {
+    "Bayan": "11:30",
+    "Kerim": "16:30",
+    "ohdy": "18:00",
+    "Sofiya": "17:00",
+    "Ela": "17:00"
+  },
+  "14": {
+    "Bayan": "11:30",
+    "Corina": "16:30",
+    "ohdy": "18:00",
+    "Neha": "17:00",
+    "Lotti": "18:00",
+    "Jana": "17:00"
+  },
+  "15": {
+    "Bayan": "11:30",
+    "Kerim": "16:30",
+    "ohdy": "17:00",
+    "Neha": "17:00",
+    "Lotti": "18:00",
+    "Jana": "18:00",
+    "Abby": "12:00",
+    "Jeremy": "17:00"
+  },
+  "16": {
+    "Bayan": "11:30",
+    "Kerim": "16:30",
+    "ohdy": "18:00",
+    "Neha": "11:30",
+    "Lotti": "17:00",
+    "Jana": "17:00",
+    "Sofiya": "17:00",
+    "Abby": "12:00",
+    "Jeremy": "11:30"
+  },
+  "17": {},
+  "18": {},
+  "19": {
+    "Bayan": "11:30",
+    "Kerim": "16:30",
+    "Lea": "18:00",
+    "Anja": "17:00"
+  },
+  "20": {
+    "Bayan": "11:30",
+    "David": "16:30",
+    "ohdy": "18:00",
+    "Jana": "18:00",
+    "Ela": "17:00"
+  },
+  "21": {
+    "Bayan": "11:30",
+    "David": "17:00",
+    "Kerim": "16:30",
+    "ohdy": "18:00",
+    "Neha": "17:00",
+    "Lotti": "17:00",
+    "Sofiya": "18:00",
+    "Anja": "18:00"
+  },
+  "22": {
+    "Bayan": "11:30",
+    "Kerim": "16:30",
+    "ohdy": "17:00",
+    "Lotti": "17:00",
+    "Jana": "18:00",
+    "Sofiya": "18:00",
+    "Abby": "12:00",
+    "Jeremy": "17:00"
+  },
+  "23": {
+    "Bayan": "11:30",
+    "David": "17:00",
+    "Kerim": "16:30",
+    "ohdy": "17:00",
+    "Neha": "17:00",
+    "Lotti": "11:30",
+    "Jana": "18:00",
+    "Anja": "17:00",
+    "Abby": "12:00",
+    "Jeremy": "11:30"
+  },
+  "24": {},
+  "25": {},
+  "26": {
+    "Bayan": "11:30",
+    "David": "16:30",
+    "Lotti": "18:00",
+    "Jana": "18:00",
+    "Anja": "17:00"
+  },
+  "27": {
+    "Bayan": "11:30",
+    "Kerim": "16:30",
+    "Sofiya": "18:00",
+    "Anja": "18:00"
+  },
+  "28": {
+    "Bayan": "11:30",
+    "Corina": "16:30",
+    "David": "17:00",
+    "ohdy": "18:00",
+    "Neha": "17:00",
+    "Sofiya": "18:00",
+    "Ela": "17:00"
+  },
+  "29": {
+    "Bayan": "11:30",
+    "Kerim": "16:30",
+    "ohdy": "18:00",
+    "Lea": "18:00",
+    "Lotti": "17:00",
+    "Jana": "18:00",
+    "Anja": "17:00",
+    "Abby": "12:00",
+    "Jeremy": "17:00"
+  },
+  "30": {
+    "Bayan": "11:30",
+    "Corina": "16:30",
+    "David": "17:00",
+    "Neha": "11:30",
+    "Lea": "17:00",
+    "Lotti": "17:00",
+    "Sofiya": "17:00",
+    "Anja": "17:00",
+    "Ela": "17:00",
+    "Abby": "12:00",
+    "Jeremy": "11:30"
+  },
+  "31": {}
+};
+let plan = JSON.parse(JSON.stringify(basePlan));
+
+try {
+  const saved = localStorage.getItem("sinthorn_august_2026_changes");
+  if (saved) {
+    const changes = JSON.parse(saved);
+    Object.keys(changes).forEach(day => {
+      plan[day] = plan[day] || {};
+      Object.keys(changes[day]).forEach(name => {
+        const value = changes[day][name];
+        if (value === null) delete plan[day][name];
+        else plan[day][name] = value;
+      });
+    });
+  }
+} catch (e) {}
+
+function saveLocalChanges() {
+  const changes = {};
+  for (let day = 1; day <= 31; day++) {
+    employees.forEach(name => {
+      const base = basePlan[day]?.[name] ?? null;
+      const current = plan[day]?.[name] ?? null;
+      if (base !== current) {
+        if (!changes[day]) changes[day] = {};
+        changes[day][name] = current;
+      }
+    });
+  }
+  localStorage.setItem("sinthorn_august_2026_changes", JSON.stringify(changes));
+}
+
+function isClosedDay(day) {
+  const d = new Date(2026, 7, day);
+  const weekday = d.getDay();
+  return weekday === 1 || weekday === 2; // Montag oder Dienstag
+}
+
+const select = document.getElementById("employeeSelect");
+const personView = document.getElementById("personView");
+const allView = document.getElementById("allView");
+
+employees.forEach(name => {
+  const option = document.createElement("option");
+  option.value = name;
+  option.textContent = name;
+  select.appendChild(option);
+});
+
+const weekdays = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+const weekdayLong = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+
+function getDayIndex(day) {
+  const d = new Date(2026, 7, day);
+  return d.getDay();
+}
+
+function renderPerson(name) {
+  const workDays = Object.keys(plan).filter(d => plan[d][name]).length;
+
+  let html = `
+    <div class="person-head">
+      <h2>${name}</h2>
+      <span class="shift-count">${workDays} Arbeitstage</span>
+    </div>
+    <div class="calendar">
+      ${weekdays.map(w => `<div class="weekday">${w}</div>`).join("")}
+  `;
+
+  // 01.08.2026 ist Samstag: 5 leere Felder bei Montag als Wochenstart.
+  for (let i = 0; i < 5; i++) html += `<div class="day empty"></div>`;
+
+  for (let day = 1; day <= 31; day++) {
+    const time = plan[day]?.[name];
+    const closed = isClosedDay(day);
+    html += `<div class="day ${closed ? "closed" : ""}">
+      <div class="date-num">${String(day).padStart(2,"0")}.08.</div>
+      ${closed
+        ? `<div class="closed-label">Geschlossen</div>`
+        : time
+          ? `<div class="time">${time} Uhr</div>`
+          : `<div class="off">Frei</div>`}
+    </div>`;
+  }
+
+  html += `</div>`;
+
+  const workEntries = [];
+  for (let day = 1; day <= 31; day++) {
+    const time = plan[day]?.[name];
+    if (time && !isClosedDay(day)) {
+      const date = new Date(2026, 7, day);
+      workEntries.push(
+        `<div class="work-summary-item">${String(day).padStart(2,"0")} (${weekdayLong[date.getDay()].slice(0,2)}) – ${time} Uhr</div>`
+      );
+    }
+  }
+
+  html += `
+    <div class="work-summary">
+      <h3>Meine Arbeitstage – August 2026</h3>
+      <div class="work-summary-list">
+        ${workEntries.length ? workEntries.join("") : '<div class="off">Keine Arbeitstage eingetragen.</div>'}
+      </div>
+    </div>
+
+    <div class="edit-box">
+      <h3>Schicht ändern</h3>
+      <div class="edit-grid">
+        <div>
+          <label for="editDay">Tag</label>
+          <select id="editDay"></select>
+        </div>
+        <div>
+          <label for="editTime">Neue Startzeit</label>
+          <input id="editTime" type="time">
+        </div>
+      </div>
+      <div class="edit-actions">
+        <button class="save-btn" id="saveShift">Änderung speichern</button>
+        <button class="clear-btn" id="setFree">Als frei markieren</button>
+        <button class="reset-btn" id="resetChanges">Eigene Änderungen zurücksetzen</button>
+      </div>
+      <div class="edit-note">
+        Änderungen werden nur auf diesem Gerät gespeichert. Andere Mitarbeiter sehen sie nicht automatisch.
+      </div>
+    </div>
+  `;
+
+  personView.innerHTML = html;
+
+  const editDay = document.getElementById("editDay");
+  const editTime = document.getElementById("editTime");
+
+  for (let day = 1; day <= 31; day++) {
+    if (!isClosedDay(day)) {
+      const date = new Date(2026, 7, day);
+      const option = document.createElement("option");
+      option.value = day;
+      option.textContent = `${String(day).padStart(2,"0")} (${weekdayLong[date.getDay()].slice(0,2)})`;
+      editDay.appendChild(option);
+    }
+  }
+
+  function loadTimeForDay() {
+    const d = editDay.value;
+    editTime.value = plan[d]?.[name] || "";
+  }
+
+  editDay.addEventListener("change", loadTimeForDay);
+  loadTimeForDay();
+
+  document.getElementById("saveShift").addEventListener("click", () => {
+    const d = editDay.value;
+    if (!editTime.value) {
+      alert("Bitte eine Startzeit auswählen.");
+      return;
+    }
+    plan[d] = plan[d] || {};
+    plan[d][name] = editTime.value;
+    saveLocalChanges();
+    renderPerson(name);
+  });
+
+  document.getElementById("setFree").addEventListener("click", () => {
+    const d = editDay.value;
+    if (plan[d]) delete plan[d][name];
+    saveLocalChanges();
+    renderPerson(name);
+  });
+
+  document.getElementById("resetChanges").addEventListener("click", () => {
+    localStorage.removeItem("sinthorn_august_2026_changes");
+    plan = JSON.parse(JSON.stringify(basePlan));
+    renderPerson(name);
+  });
+}
+
+function renderAll() {
+  let html = `<h2 style="margin-top:0">Alle Mitarbeiter</h2><table><thead><tr><th>Datum</th>`;
+  employees.forEach(name => html += `<th>${name}</th>`);
+  html += `</tr></thead><tbody>`;
+
+  for (let day = 1; day <= 31; day++) {
+    const date = new Date(2026, 7, day);
+    const label = `${String(day).padStart(2,"0")}.08. ${weekdayLong[date.getDay()].slice(0,2)}`;
+    const closed = isClosedDay(day);
+    html += `<tr><td>${label}</td>`;
+    employees.forEach(name => {
+      const time = plan[day]?.[name];
+      if (closed) html += `<td class="closed-cell">×</td>`;
+      else if (time) html += `<td class="work">${time}</td>`;
+      else html += `<td>–</td>`;
+    });
+    html += `</tr>`;
+  }
+
+  html += `</tbody></table>`;
+  allView.innerHTML = html;
+}
+
+function render() {
+  if (select.value === "all") {
+    personView.classList.add("hidden");
+    allView.classList.remove("hidden");
+    renderAll();
+  } else {
+    allView.classList.add("hidden");
+    personView.classList.remove("hidden");
+    renderPerson(select.value);
+  }
+}
+
+select.addEventListener("change", render);
+render();
+
+</script>
+</body>
+</html>
