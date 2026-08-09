@@ -8,14 +8,14 @@
   <style>
 *{box-sizing:border-box}
 :root{
-  --bg:#f3f5f2;
-  --card:#fff;
-  --text:#17201b;
-  --muted:#68736c;
-  --green:#163b2c;
-  --green-soft:#edf3ef;
-  --line:#e2e7e3;
-  --closed:#eef0f2;
+  --bg:#f7efe3;
+  --card:#fffaf3;
+  --text:#2b2622;
+  --muted:#7d6f63;
+  --green:#d9851f;
+  --green-soft:#fff0dc;
+  --line:#eadcc9;
+  --closed:#eee7de;
 }
 body{
   margin:0;
@@ -25,7 +25,7 @@ body{
 }
 .wrap{width:min(1080px,calc(100% - 24px));margin:28px auto 50px}
 .hero{
-  background:var(--green);
+  background:linear-gradient(135deg,#2b2622,#3a312a);
   color:#fff;
   border-radius:24px;
   padding:26px;
@@ -33,7 +33,7 @@ body{
   align-items:center;
   justify-content:space-between;
   gap:20px;
-  box-shadow:0 15px 45px rgba(22,59,44,.15);
+  box-shadow:0 18px 50px rgba(68,49,31,.18);
 }
 .hero h1{margin:2px 0 7px;font-size:clamp(30px,6vw,46px)}
 .kicker{font-weight:800;letter-spacing:.16em;font-size:12px;margin:0;opacity:.72}
@@ -65,8 +65,8 @@ select{
   width:100%;
   padding:14px 15px;
   border-radius:13px;
-  border:1px solid #cfd7d1;
-  background:#fff;
+  border:1px solid #ddcdb9;
+  background:#fffaf3;
   color:var(--text);
   font-size:16px;
 }
@@ -90,7 +90,7 @@ select{
   border:1px solid var(--line);
   border-radius:14px;
   padding:10px;
-  background:#fff;
+  background:#fffaf3;
 }
 .day.empty{visibility:hidden}
 .day.closed{background:var(--closed)}
@@ -102,20 +102,20 @@ select{
 .hidden{display:none}
 table{width:100%;border-collapse:separate;border-spacing:0;min-width:980px;font-size:13px}
 th,td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:9px;text-align:center}
-th:first-child,td:first-child{border-left:1px solid var(--line);position:sticky;left:0;background:#fff;z-index:2}
-thead th{position:sticky;top:0;background:#f8faf8;z-index:1;font-weight:800}
+th:first-child,td:first-child{border-left:1px solid var(--line);position:sticky;left:0;background:#fffaf3;z-index:2}
+thead th{position:sticky;top:0;background:#fbf4ea;z-index:1;font-weight:800}
 thead th:first-child{z-index:3}
 tr:first-child th{border-top:1px solid var(--line)}
 th:first-child{border-top-left-radius:10px}
 thead th:last-child{border-top-right-radius:10px}
-td.work{font-weight:800;color:var(--green);background:var(--green-soft)}
+td.work{font-weight:800;color:#c96f10;background:var(--green-soft)}
 td.closed-cell{background:var(--closed);color:#92999e}
 .work-summary{
   margin-top:18px;
   padding:15px;
   border:1px solid var(--line);
   border-radius:14px;
-  background:#f8faf8;
+  background:#fbf4ea;
 }
 .work-summary h3{margin:0 0 10px;font-size:15px}
 .work-summary-list{display:grid;gap:6px}
@@ -123,7 +123,7 @@ td.closed-cell{background:var(--closed);color:#92999e}
   font-weight:700;
   font-size:14px;
   padding:7px 9px;
-  background:#fff;
+  background:#fffaf3;
   border-radius:9px;
   border:1px solid var(--line);
 }
@@ -133,7 +133,7 @@ td.closed-cell{background:var(--closed);color:#92999e}
   padding:15px;
   border:1px solid var(--line);
   border-radius:14px;
-  background:#fff;
+  background:#fffaf3;
 }
 .edit-box h3{margin:0 0 10px;font-size:15px}
 .edit-grid{
@@ -151,9 +151,9 @@ td.closed-cell{background:var(--closed);color:#92999e}
 .edit-grid select,.edit-grid input{
   width:100%;
   padding:11px 12px;
-  border:1px solid #cfd7d1;
+  border:1px solid #ddcdb9;
   border-radius:10px;
-  background:#fff;
+  background:#fffaf3;
   font-size:14px;
 }
 .edit-actions{
@@ -169,9 +169,9 @@ td.closed-cell{background:var(--closed);color:#92999e}
   font-weight:800;
   cursor:pointer;
 }
-.save-btn{background:var(--green);color:#fff}
-.clear-btn{background:#eef1ef;color:var(--text)}
-.reset-btn{background:#f4e9e9;color:#7c2727}
+.save-btn{background:linear-gradient(135deg,#2b2622,#3a312a);color:#fff}
+.clear-btn{background:#f1e6d7;color:var(--text)}
+.reset-btn{background:#f3dfd8;color:#7c2727}
 .edit-note{
   margin-top:9px;
   font-size:12px;
@@ -208,7 +208,7 @@ td.closed-cell{background:var(--closed);color:#92999e}
 }
 .pin-card{
   width:min(390px,100%);
-  background:#fff;
+  background:#fffaf3;
   border:1px solid #e2e7e3;
   border-radius:22px;
   padding:26px;
@@ -223,7 +223,7 @@ td.closed-cell{background:var(--closed);color:#92999e}
 .pin-card h1{margin:0 0 7px;font-size:25px}
 .pin-card p{margin:0 0 18px;color:#68736c;line-height:1.45}
 .pin-input{
-  width:100%;padding:14px;border:1px solid #cfd7d1;border-radius:12px;
+  width:100%;padding:14px;border:1px solid #ddcdb9;border-radius:12px;
   text-align:center;font-size:22px;letter-spacing:.22em;font-weight:800;
 }
 .pin-button{
@@ -233,12 +233,130 @@ td.closed-cell{background:var(--closed);color:#92999e}
 .pin-error{min-height:20px;margin-top:10px!important;color:#9b2c2c!important;font-size:13px}
 .site-locked{display:none!important}
 
+
+body{
+  background:
+    radial-gradient(circle at top right, rgba(217,133,31,.10), transparent 34%),
+    linear-gradient(180deg,#f8f0e5 0%,#f4eadc 100%);
+}
+.hero{
+  position:relative;
+  overflow:hidden;
+}
+.hero::after{
+  content:"S";
+  position:absolute;
+  right:28px;
+  top:50%;
+  transform:translateY(-50%);
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:120px;
+  font-weight:700;
+  color:rgba(217,133,31,.14);
+  line-height:1;
+  pointer-events:none;
+}
+.hero h1{
+  font-family:Georgia,"Times New Roman",serif;
+  letter-spacing:.01em;
+}
+.kicker{
+  color:#e3a85c;
+  opacity:1;
+}
+.month-badge{
+  background:rgba(217,133,31,.10);
+  border-color:rgba(227,168,92,.35);
+  color:#f1c27f;
+  backdrop-filter:blur(6px);
+}
+.panel{
+  box-shadow:0 10px 30px rgba(92,66,38,.07);
+}
+select,
+.edit-grid input{
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.55);
+}
+.person-head h2,
+.work-summary h3,
+.edit-box h3,
+.table-panel h2{
+  font-family:Georgia,"Times New Roman",serif;
+}
+.day{
+  transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
+}
+.day:hover{
+  transform:translateY(-1px);
+  box-shadow:0 6px 16px rgba(111,79,44,.08);
+  border-color:#dcc19d;
+}
+.time{
+  color:#c96f10 !important;
+}
+.save-btn{
+  background:linear-gradient(135deg,#d9851f,#b9600b) !important;
+  color:#fff !important;
+  box-shadow:0 6px 14px rgba(185,96,11,.18);
+}
+.pin-screen{
+  background:
+    radial-gradient(circle at top right, rgba(217,133,31,.13), transparent 34%),
+    linear-gradient(180deg,#f8f0e5,#f4eadc);
+}
+.pin-card{
+  background:#fffaf3;
+  border-color:#eadcc9;
+  box-shadow:0 18px 50px rgba(92,66,38,.14);
+}
+.pin-logo{
+  background:#2b2622;
+  color:#e39a3f;
+  font-family:Georgia,"Times New Roman",serif;
+}
+.pin-button{
+  background:linear-gradient(135deg,#d9851f,#b9600b);
+}
+.pin-card h1{
+  font-family:Georgia,"Times New Roman",serif;
+}
+@media(max-width:650px){
+  .hero::after{
+    font-size:86px;
+    right:12px;
+  }
+}
+
+
+.pin-logo{
+  width:82px;
+  height:82px;
+  margin:0 auto 16px;
+  border-radius:20px;
+  overflow:hidden;
+  background:transparent;
+  display:block;
+}
+.pin-logo img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+}
+
 </style>
+
+  <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+  <link rel="icon" type="image/png" href="icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Sinthorn Dienstplan">
+
 </head>
 <body>
   <section id="pinScreen" class="pin-screen">
     <div class="pin-card">
-      <div class="pin-logo">S</div>
+      <div class="pin-logo"><img src="icon.png" alt="Sinthorn"></div>
       <h1>Sinthorn Dienstplan</h1>
       <p>Bitte gib die aktuelle Monats-PIN ein.</p>
       <form id="pinForm">
@@ -255,7 +373,7 @@ td.closed-cell{background:var(--closed);color:#92999e}
       <div>
         <p class="kicker">SINTHORN</p>
         <h1>Sinthorn Dienstplan</h1>
-        <p class="subtitle">Arbeitsplan für August 2026 – wähle einen Namen aus und sieh die Startzeiten.</p>
+        <p class="subtitle">Dienstplan für August 2026 – wähle einen Namen und sieh deine Startzeiten.</p>
       </div>
       <div class="month-badge">August 2026</div>
     </header>
