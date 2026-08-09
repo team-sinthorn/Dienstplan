@@ -420,6 +420,23 @@ select,
   }
 }
 
+
+.admin-text-btn{
+  width:auto !important;
+  min-width:72px;
+  padding:0 16px;
+  font-size:14px !important;
+  font-weight:800;
+}
+@media(max-width:650px){
+  .admin-text-btn{
+    width:auto !important;
+    min-width:68px;
+    flex:0 0 auto !important;
+    padding:0 13px;
+  }
+}
+
 </style>
 
   <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
@@ -455,8 +472,8 @@ select,
       </div>
       <div class="hero-actions">
         <div class="month-badge">August 2026</div>
-        <button id="adminBtn" class="admin-icon-btn" type="button" aria-label="Admin-Bereich öffnen" title="Admin">
-          ⚙
+        <button id="adminBtn" class="admin-icon-btn admin-text-btn" type="button" aria-label="Admin-Bereich öffnen" title="Admin">
+          Admin
         </button>
       </div>
     </header>
@@ -479,7 +496,7 @@ select,
     <div class="modal-card">
       <div class="modal-head">
         <h2>Admin-Bereich</h2>
-        <button id="closeAdmin" class="close-btn" type="button">×</button>
+        <button id="closeAdmin" class="close-btn" type="button" onclick="document.getElementById('adminModal').classList.add('hidden')">×</button>
       </div>
 
       <div id="adminLogin">
@@ -975,6 +992,11 @@ document.getElementById("adminBtn").addEventListener("click", () => {
   }
 });
 document.getElementById("closeAdmin").addEventListener("click", () => adminModal.classList.add("hidden"));
+
+adminModal.addEventListener("click", (event) => {
+  if (event.target === adminModal) adminModal.classList.add("hidden");
+});
+
 
 document.getElementById("adminLoginBtn").addEventListener("click", async () => {
   const msg = document.getElementById("adminLoginMsg");
