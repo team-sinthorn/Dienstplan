@@ -75,7 +75,7 @@ select{
 .shift-count{color:var(--muted);font-size:14px}
 .calendar{
   display:grid;
-  grid-template-columns:repeat(7,1fr);
+  grid-template-columns:repeat(5,1fr);
   gap:8px;
 }
 .weekday{
@@ -188,7 +188,7 @@ td.closed-cell{background:var(--closed);color:#92999e}
   .hero{padding:21px;border-radius:20px}
   .month-badge{display:none}
   .panel{padding:14px;border-radius:17px}
-  .calendar{gap:5px}
+  .calendar{gap:6px;grid-template-columns:repeat(5,1fr)}
   .weekday{font-size:10px}
   .day{min-height:78px;padding:7px;border-radius:11px}
   .time{font-size:15px;margin-top:10px}
@@ -600,22 +600,21 @@ function renderPerson(name) {
       <span class="shift-count">${workDays} Arbeitstage</span>
     </div>
     <div class="calendar">
-      ${weekdays.map(w => `<div class="weekday">${w}</div>`).join("")}
+      ${["Mi","Do","Fr","Sa","So"].map(w => `<div class="weekday">${w}</div>`).join("")}
   `;
 
-  // 01.08.2026 ist Samstag: 5 leere Felder bei Montag als Wochenstart.
-  for (let i = 0; i < 5; i++) html += `<div class="day empty"></div>`;
+  // Einzelansicht zeigt nur Mittwoch bis Sonntag.
+  // August 2026 startet am Samstag, daher drei leere Felder für Mi–Fr.
+  for (let i = 0; i < 3; i++) html += `<div class="day empty"></div>`;
 
   for (let day = 1; day <= 31; day++) {
+    if (isClosedDay(day)) continue;
     const time = plan[day]?.[name];
-    const closed = isClosedDay(day);
-    html += `<div class="day ${closed ? "closed" : ""}">
+    html += `<div class="day">
       <div class="date-num">${String(day).padStart(2,"0")}.08.</div>
-      ${closed
-        ? `<div class="closed-label">Geschlossen</div>`
-        : time
-          ? `<div class="time">${time} Uhr</div>`
-          : `<div class="off">Frei</div>`}
+      ${time
+        ? `<div class="time">${time} Uhr</div>`
+        : `<div class="off">Frei</div>`}
     </div>`;
   }
 
