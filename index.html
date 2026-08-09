@@ -571,6 +571,11 @@ pinForm.addEventListener("submit", function(event) {
     } catch (e) {}
     pinError.textContent = "";
     unlockSite();
+    loadOnlinePlan().catch(err => {
+      console.error(err);
+      allView.classList.remove("hidden");
+      allView.innerHTML = `<p>Fehler beim Laden des Dienstplans: ${err.message}</p>`;
+    });
   } else {
     pinError.textContent = "Falsche PIN.";
     pinInput.value = "";
