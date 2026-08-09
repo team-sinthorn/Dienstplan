@@ -344,6 +344,42 @@ select,
   object-fit:cover;
 }
 
+
+.admin-btn{
+  margin-top:10px;border:0;border-radius:12px;padding:11px 14px;
+  background:#2b2622;color:#fff;font-weight:800;cursor:pointer;
+}
+.swap-box,.admin-box{
+  margin-top:18px;padding:15px;border:1px solid var(--line);
+  border-radius:14px;background:#fbf4ea;
+}
+.swap-box h3,.admin-box h3{margin:0 0 10px;font-family:Georgia,"Times New Roman",serif}
+.swap-grid,.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.swap-grid label,.admin-grid label{
+  display:block;font-size:12px;font-weight:800;color:var(--muted);margin-bottom:5px;
+}
+.swap-grid select,.swap-grid input,.admin-grid select,.admin-grid input{
+  width:100%;padding:11px 12px;border:1px solid #ddcdb9;border-radius:10px;background:#fffaf3;
+}
+.action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.status-msg{font-size:12px;color:var(--muted);margin-top:8px}
+.modal{
+  position:fixed;inset:0;z-index:9000;background:rgba(43,38,34,.58);
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+.modal-card{
+  width:min(760px,100%);max-height:90vh;overflow:auto;background:#fffaf3;
+  border:1px solid var(--line);border-radius:20px;padding:18px;
+}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.modal-head h2{margin:0;font-family:Georgia,"Times New Roman",serif}
+.close-btn{border:0;background:transparent;font-size:26px;cursor:pointer}
+.request-card{padding:12px;border:1px solid var(--line);border-radius:12px;background:#fffaf3;margin-top:8px}
+.request-card p{margin:4px 0;font-size:13px}
+@media(max-width:650px){
+  .swap-grid,.admin-grid{grid-template-columns:1fr}
+}
+
 </style>
 
   <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
@@ -385,6 +421,7 @@ select,
       <select id="employeeSelect">
         <option value="all">Alle Mitarbeiter</option>
       </select>
+      <button id="adminBtn" class="admin-btn" type="button">Admin</button>
     </section>
 
     <section id="personView" class="panel"></section>
@@ -392,6 +429,54 @@ select,
 
     <p class="source-note">Aus dem fotografierten Dienstplan übertragen. Montag und Dienstag werden als geschlossen angezeigt.</p>
   </main>
+
+  <section id="adminModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>Admin-Bereich</h2>
+        <button id="closeAdmin" class="close-btn" type="button">×</button>
+      </div>
+
+      <div id="adminLogin">
+        <p class="status-msg">Nur für die Chefin bzw. Admins.</p>
+        <label for="adminPin">6-stellige Admin-PIN</label>
+        <input id="adminPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••••">
+        <button id="adminLoginBtn" class="save-btn" type="button" style="margin-top:10px">Anmelden</button>
+        <div id="adminLoginMsg" class="status-msg"></div>
+      </div>
+
+      <div id="adminPanel" class="hidden">
+        <div class="admin-box">
+          <h3>Offizielle Schicht ändern</h3>
+          <div class="admin-grid">
+            <div>
+              <label for="adminEmployee">Mitarbeiter</label>
+              <select id="adminEmployee"></select>
+            </div>
+            <div>
+              <label for="adminDate">Datum</label>
+              <input id="adminDate" type="date" value="2026-08-01">
+            </div>
+            <div>
+              <label for="adminTime">Startzeit</label>
+              <input id="adminTime" type="time">
+            </div>
+          </div>
+          <div class="action-row">
+            <button id="adminSaveShift" class="save-btn" type="button">Speichern</button>
+            <button id="adminSetFree" class="clear-btn" type="button">Als frei markieren</button>
+          </div>
+          <div id="adminShiftMsg" class="status-msg"></div>
+        </div>
+
+        <div class="admin-box">
+          <h3>Offene Tauschanfragen</h3>
+          <div id="swapRequests"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <script>
 
 // Automatische Monats-PIN: 62 + zweistelliger aktueller Monat
@@ -412,6 +497,7 @@ function unlockSite() {
 try {
   if (sessionStorage.getItem("sinthorn_pin_ok_" + new Date().getFullYear() + "_" + currentMonth) === "yes") {
     unlockSite();
+    loadOnlinePlan().catch(err => console.error(err));
   }
 } catch (e) {}
 
@@ -654,36 +740,43 @@ const basePlan = {
   },
   "31": {}
 };
-let plan = JSON.parse(JSON.stringify(basePlan));
+let plan = {};
 
-try {
-  const saved = localStorage.getItem("sinthorn_august_2026_changes");
-  if (saved) {
-    const changes = JSON.parse(saved);
-    Object.keys(changes).forEach(day => {
-      plan[day] = plan[day] || {};
-      Object.keys(changes[day]).forEach(name => {
-        const value = changes[day][name];
-        if (value === null) delete plan[day][name];
-        else plan[day][name] = value;
-      });
-    });
-  }
-} catch (e) {}
+const API_BASE = "https://solitary-recipe-b37e.trampnaujoschi.workers.dev";
+let adminToken = sessionStorage.getItem("sinthorn_admin_token") || "";
 
-function saveLocalChanges() {
-  const changes = {};
-  for (let day = 1; day <= 31; day++) {
-    employees.forEach(name => {
-      const base = basePlan[day]?.[name] ?? null;
-      const current = plan[day]?.[name] ?? null;
-      if (base !== current) {
-        if (!changes[day]) changes[day] = {};
-        changes[day][name] = current;
-      }
-    });
+async function api(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (options.admin && adminToken) headers.Authorization = `Bearer ${adminToken}`;
+  const response = await fetch(API_BASE + path, { ...options, headers });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "API-Fehler");
+  return data;
+}
+
+async function loadOnlinePlan() {
+  const data = await api("/api/month?month=2026-08");
+  employees.splice(0, employees.length, ...data.employees);
+  plan = {};
+  for (const row of data.shifts) {
+    const day = Number(row.shift_date.slice(-2));
+    plan[day] = plan[day] || {};
+    plan[day][row.employee] = row.start_time;
   }
-  localStorage.setItem("sinthorn_august_2026_changes", JSON.stringify(changes));
+  rebuildEmployeeSelects();
+  render();
+}
+
+function rebuildEmployeeSelects() {
+  const selects = [document.getElementById("employeeSelect"), document.getElementById("adminEmployee")].filter(Boolean);
+  for (const sel of selects) {
+    const current = sel.value;
+    sel.innerHTML = sel.id === "employeeSelect" ? '<option value="all">Alle Mitarbeiter</option>' : "";
+    for (const name of employees) {
+      const o = document.createElement("option"); o.value = name; o.textContent = name; sel.appendChild(o);
+    }
+    if ([...sel.options].some(o => o.value === current)) sel.value = current;
+  }
 }
 
 function isClosedDay(day) {
@@ -696,12 +789,6 @@ const select = document.getElementById("employeeSelect");
 const personView = document.getElementById("personView");
 const allView = document.getElementById("allView");
 
-employees.forEach(name => {
-  const option = document.createElement("option");
-  option.value = name;
-  option.textContent = name;
-  select.appendChild(option);
-});
 
 const weekdays = ["Mo","Di","Mi","Do","Fr","Sa","So"];
 const weekdayLong = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
@@ -758,77 +845,172 @@ function renderPerson(name) {
         ${workEntries.length ? workEntries.join("") : '<div class="off">Keine Arbeitstage eingetragen.</div>'}
       </div>
     </div>
-
-    <div class="edit-box">
-      <h3>Schicht ändern</h3>
-      <div class="edit-grid">
+    <div class="swap-box">
+      <h3>Schichttausch vorschlagen</h3>
+      <div class="swap-grid">
         <div>
-          <label for="editDay">Tag</label>
-          <select id="editDay"></select>
+          <label for="mySwapDay">Meine Schicht</label>
+          <select id="mySwapDay"></select>
         </div>
         <div>
-          <label for="editTime">Neue Startzeit</label>
-          <input id="editTime" type="time">
+          <label for="partnerName">Tausch mit</label>
+          <select id="partnerName"></select>
+        </div>
+        <div>
+          <label for="partnerDay">Schicht des Tauschpartners</label>
+          <select id="partnerDay"></select>
+        </div>
+        <div>
+          <label for="swapNote">Notiz (optional)</label>
+          <input id="swapNote" type="text" placeholder="z. B. schon abgesprochen">
         </div>
       </div>
-      <div class="edit-actions">
-        <button class="save-btn" id="saveShift">Änderung speichern</button>
-        <button class="clear-btn" id="setFree">Als frei markieren</button>
-        <button class="reset-btn" id="resetChanges">Eigene Änderungen zurücksetzen</button>
-      </div>
-      <div class="edit-note">
-        Änderungen werden nur auf diesem Gerät gespeichert. Andere Mitarbeiter sehen sie nicht automatisch.
-      </div>
+      <button id="sendSwap" class="save-btn" type="button" style="margin-top:10px">Tausch vorschlagen</button>
+      <div id="swapMsg" class="status-msg">Der offizielle Plan ändert sich erst nach Bestätigung durch einen Admin.</div>
     </div>
   `;
 
   personView.innerHTML = html;
+  setupSwapUI(name);
+}
 
-  const editDay = document.getElementById("editDay");
-  const editTime = document.getElementById("editTime");
 
-  for (let day = 1; day <= 31; day++) {
-    if (!isClosedDay(day)) {
-      const date = new Date(2026, 7, day);
-      const option = document.createElement("option");
-      option.value = day;
-      option.textContent = `${String(day).padStart(2,"0")} (${weekdayLong[date.getDay()].slice(0,2)})`;
-      editDay.appendChild(option);
+function setupSwapUI(name) {
+  const my = document.getElementById("mySwapDay");
+  const partnerName = document.getElementById("partnerName");
+  const partnerDay = document.getElementById("partnerDay");
+
+  employees.filter(n => n !== name).forEach(n => {
+    const o = document.createElement("option"); o.value = n; o.textContent = n; partnerName.appendChild(o);
+  });
+
+  function fillDaySelect(sel, who) {
+    sel.innerHTML = "";
+    for (let day = 1; day <= 31; day++) {
+      if (isClosedDay(day)) continue;
+      const time = plan[day]?.[who] || "Frei";
+      const o = document.createElement("option");
+      o.value = `2026-08-${String(day).padStart(2,"0")}`;
+      o.textContent = `${String(day).padStart(2,"0")} (${weekdayLong[new Date(2026,7,day).getDay()].slice(0,2)}) – ${time}`;
+      sel.appendChild(o);
     }
   }
 
-  function loadTimeForDay() {
-    const d = editDay.value;
-    editTime.value = plan[d]?.[name] || "";
-  }
+  fillDaySelect(my, name);
+  if (partnerName.value) fillDaySelect(partnerDay, partnerName.value);
+  partnerName.addEventListener("change", () => fillDaySelect(partnerDay, partnerName.value));
 
-  editDay.addEventListener("change", loadTimeForDay);
-  loadTimeForDay();
-
-  document.getElementById("saveShift").addEventListener("click", () => {
-    const d = editDay.value;
-    if (!editTime.value) {
-      alert("Bitte eine Startzeit auswählen.");
-      return;
+  document.getElementById("sendSwap").addEventListener("click", async () => {
+    const msg = document.getElementById("swapMsg");
+    try {
+      await api("/api/swap-requests", {
+        method: "POST",
+        body: JSON.stringify({
+          requester: name,
+          requester_date: my.value,
+          partner: partnerName.value,
+          partner_date: partnerDay.value,
+          note: document.getElementById("swapNote").value.trim()
+        })
+      });
+      msg.textContent = "Tauschvorschlag wurde an den Admin geschickt.";
+    } catch (e) {
+      msg.textContent = "Fehler: " + e.message;
     }
-    plan[d] = plan[d] || {};
-    plan[d][name] = editTime.value;
-    saveLocalChanges();
-    renderPerson(name);
   });
+}
 
-  document.getElementById("setFree").addEventListener("click", () => {
-    const d = editDay.value;
-    if (plan[d]) delete plan[d][name];
-    saveLocalChanges();
-    renderPerson(name);
-  });
+const adminModal = document.getElementById("adminModal");
+document.getElementById("adminBtn").addEventListener("click", () => {
+  adminModal.classList.remove("hidden");
+  if (adminToken) {
+    document.getElementById("adminLogin").classList.add("hidden");
+    document.getElementById("adminPanel").classList.remove("hidden");
+    loadSwapRequests();
+  }
+});
+document.getElementById("closeAdmin").addEventListener("click", () => adminModal.classList.add("hidden"));
 
-  document.getElementById("resetChanges").addEventListener("click", () => {
-    localStorage.removeItem("sinthorn_august_2026_changes");
-    plan = JSON.parse(JSON.stringify(basePlan));
-    renderPerson(name);
-  });
+document.getElementById("adminLoginBtn").addEventListener("click", async () => {
+  const msg = document.getElementById("adminLoginMsg");
+  try {
+    const data = await api("/api/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ pin: document.getElementById("adminPin").value })
+    });
+    adminToken = data.token;
+    sessionStorage.setItem("sinthorn_admin_token", adminToken);
+    document.getElementById("adminLogin").classList.add("hidden");
+    document.getElementById("adminPanel").classList.remove("hidden");
+    msg.textContent = "";
+    loadSwapRequests();
+  } catch (e) {
+    msg.textContent = e.message;
+  }
+});
+
+document.getElementById("adminSaveShift").addEventListener("click", async () => {
+  const msg = document.getElementById("adminShiftMsg");
+  try {
+    await api("/api/admin/shift", {
+      method: "PUT",
+      admin: true,
+      body: JSON.stringify({
+        shift_date: document.getElementById("adminDate").value,
+        employee: document.getElementById("adminEmployee").value,
+        start_time: document.getElementById("adminTime").value
+      })
+    });
+    msg.textContent = "Gespeichert – für alle sichtbar.";
+    await loadOnlinePlan();
+  } catch (e) { msg.textContent = e.message; }
+});
+
+document.getElementById("adminSetFree").addEventListener("click", async () => {
+  const msg = document.getElementById("adminShiftMsg");
+  try {
+    await api("/api/admin/shift", {
+      method: "PUT",
+      admin: true,
+      body: JSON.stringify({
+        shift_date: document.getElementById("adminDate").value,
+        employee: document.getElementById("adminEmployee").value,
+        free: true
+      })
+    });
+    msg.textContent = "Als frei gespeichert – für alle sichtbar.";
+    await loadOnlinePlan();
+  } catch (e) { msg.textContent = e.message; }
+});
+
+async function loadSwapRequests() {
+  const box = document.getElementById("swapRequests");
+  try {
+    const data = await api("/api/admin/swap-requests?status=offen", { admin: true });
+    box.innerHTML = data.requests.length ? data.requests.map(r => `
+      <div class="request-card">
+        <strong>${r.requester} ↔ ${r.partner}</strong>
+        <p>${r.requester}: ${r.requester_date.slice(-2)}.08. | ${r.partner}: ${r.partner_date.slice(-2)}.08.</p>
+        ${r.note ? `<p>Notiz: ${r.note}</p>` : ""}
+        <div class="action-row">
+          <button class="save-btn" onclick="approveSwap(${r.id})">Bestätigen</button>
+          <button class="reset-btn" onclick="rejectSwap(${r.id})">Ablehnen</button>
+        </div>
+      </div>
+    `).join("") : '<div class="status-msg">Keine offenen Tauschanfragen.</div>';
+  } catch (e) {
+    box.innerHTML = '<div class="status-msg">Fehler: ' + e.message + '</div>';
+  }
+}
+
+async function approveSwap(id) {
+  await api(`/api/admin/swap-requests/${id}/approve`, { method: "POST", admin: true });
+  await loadOnlinePlan();
+  await loadSwapRequests();
+}
+async function rejectSwap(id) {
+  await api(`/api/admin/swap-requests/${id}/reject`, { method: "POST", admin: true });
+  await loadSwapRequests();
 }
 
 function renderAll() {
@@ -867,7 +1049,6 @@ function render() {
 }
 
 select.addEventListener("change", render);
-render();
 
 </script>
 </body>
