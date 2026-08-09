@@ -195,10 +195,62 @@ td.closed-cell{background:var(--closed);color:#92999e}
   .off,.closed-label{font-size:11px;margin-top:10px}
 }
 
+
+.pin-screen{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:#f3f5f2;
+}
+.pin-card{
+  width:min(390px,100%);
+  background:#fff;
+  border:1px solid #e2e7e3;
+  border-radius:22px;
+  padding:26px;
+  box-shadow:0 15px 45px rgba(22,59,44,.12);
+  text-align:center;
+}
+.pin-logo{
+  width:54px;height:54px;margin:0 auto 16px;border-radius:16px;
+  background:#163b2c;color:#fff;display:grid;place-items:center;
+  font-size:22px;font-weight:900;
+}
+.pin-card h1{margin:0 0 7px;font-size:25px}
+.pin-card p{margin:0 0 18px;color:#68736c;line-height:1.45}
+.pin-input{
+  width:100%;padding:14px;border:1px solid #cfd7d1;border-radius:12px;
+  text-align:center;font-size:22px;letter-spacing:.22em;font-weight:800;
+}
+.pin-button{
+  width:100%;margin-top:10px;padding:13px;border:0;border-radius:12px;
+  background:#163b2c;color:#fff;font-weight:800;font-size:15px;cursor:pointer;
+}
+.pin-error{min-height:20px;margin-top:10px!important;color:#9b2c2c!important;font-size:13px}
+.site-locked{display:none!important}
+
 </style>
 </head>
 <body>
-  <main class="wrap">
+  <section id="pinScreen" class="pin-screen">
+    <div class="pin-card">
+      <div class="pin-logo">S</div>
+      <h1>Sinthorn Dienstplan</h1>
+      <p>Bitte gib die aktuelle Monats-PIN ein.</p>
+      <form id="pinForm">
+        <input id="pinInput" class="pin-input" type="password" inputmode="numeric"
+               pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••" autofocus>
+        <button class="pin-button" type="submit">Dienstplan öffnen</button>
+      </form>
+      <p id="pinError" class="pin-error"></p>
+    </div>
+  </section>
+
+  <main id="mainSite" class="wrap site-locked">
     <header class="hero">
       <div>
         <p class="kicker">SINTHORN</p>
@@ -221,6 +273,43 @@ td.closed-cell{background:var(--closed);color:#92999e}
     <p class="source-note">Aus dem fotografierten Dienstplan übertragen. Montag und Dienstag werden als geschlossen angezeigt.</p>
   </main>
   <script>
+
+// Automatische Monats-PIN: 62 + zweistelliger aktueller Monat
+const currentMonth = new Date().getMonth() + 1;
+const ACCESS_PIN = "62" + String(currentMonth).padStart(2, "0");
+
+const pinScreen = document.getElementById("pinScreen");
+const mainSite = document.getElementById("mainSite");
+const pinForm = document.getElementById("pinForm");
+const pinInput = document.getElementById("pinInput");
+const pinError = document.getElementById("pinError");
+
+function unlockSite() {
+  pinScreen.style.display = "none";
+  mainSite.classList.remove("site-locked");
+}
+
+try {
+  if (sessionStorage.getItem("sinthorn_pin_ok_" + new Date().getFullYear() + "_" + currentMonth) === "yes") {
+    unlockSite();
+  }
+} catch (e) {}
+
+pinForm.addEventListener("submit", function(event) {
+  event.preventDefault();
+  if (pinInput.value === ACCESS_PIN) {
+    try {
+      sessionStorage.setItem("sinthorn_pin_ok_" + new Date().getFullYear() + "_" + currentMonth, "yes");
+    } catch (e) {}
+    pinError.textContent = "";
+    unlockSite();
+  } else {
+    pinError.textContent = "Falsche PIN.";
+    pinInput.value = "";
+    pinInput.focus();
+  }
+});
+
 // ======================================================
 // DIENSTPLAN AUGUST 2026
 // Zeiten aus dem fotografierten Plan übertragen.
