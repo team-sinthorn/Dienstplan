@@ -386,6 +386,93 @@ select,
 }
 
 
+.hero-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  position:relative;
+  z-index:2;
+}
+.admin-icon-btn{
+  width:44px;
+  height:44px;
+  border:1px solid rgba(227,168,92,.35);
+  border-radius:14px;
+  background:rgba(217,133,31,.12);
+  color:#f1c27f;
+  font-size:21px;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  backdrop-filter:blur(6px);
+}
+.admin-icon-btn:hover{
+  background:rgba(217,133,31,.20);
+}
+@media(max-width:650px){
+  .hero-actions{
+    align-self:flex-start;
+  }
+  .admin-icon-btn{
+    width:42px;
+    height:42px;
+    flex:0 0 42px;
+  }
+}
+
+
+.admin-text-btn{
+  width:auto !important;
+  min-width:72px;
+  padding:0 16px;
+  font-size:14px !important;
+  font-weight:800;
+}
+@media(max-width:650px){
+  .admin-text-btn{
+    width:auto !important;
+    min-width:68px;
+    flex:0 0 auto !important;
+    padding:0 13px;
+  }
+}
+
+
+.team-calendar-box{
+  margin-top:18px;
+  padding:15px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fbf4ea;
+}
+.team-calendar-box h3{
+  margin:0 0 10px;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:15px;
+}
+.team-day{
+  min-height:94px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:8px;
+  background:#fffaf3;
+}
+.team-names{margin-top:7px;display:flex;flex-direction:column;gap:3px}
+.team-name{
+  font-size:10px;
+  line-height:1.2;
+  font-weight:700;
+  color:var(--text);
+  overflow-wrap:anywhere;
+}
+.team-name.me{color:#c96f10;font-weight:900}
+.team-empty{margin-top:8px;font-size:10px;color:#a39a91}
+@media(max-width:650px){
+  .team-day{min-height:82px;padding:6px}
+  .team-name{font-size:9px}
+}
+
+
 .today-box{
   padding:6px 0 2px;
 }
@@ -426,6 +513,7 @@ select,
   background:#fbf4ea;
   color:var(--muted);
 }
+
 </style>
 
   <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
@@ -459,7 +547,12 @@ select,
         <h1>Dienstplan</h1>
         <p class="subtitle">Dienstplan für August 2026 – wähle einen Namen und sieh deine Startzeiten.</p>
       </div>
-      <div class="month-badge">August 2026</div>
+      <div class="hero-actions">
+        <div class="month-badge">August 2026</div>
+        <button id="adminBtn" class="admin-icon-btn admin-text-btn" type="button" aria-label="Admin-Bereich öffnen" title="Admin">
+          Admin
+        </button>
+      </div>
     </header>
 
     <section class="panel controls">
@@ -468,7 +561,7 @@ select,
         <option value="all">Alle Mitarbeiter</option>
         <option value="today">Wer arbeitet heute?</option>
       </select>
-      <button id="adminBtn" class="admin-btn" type="button">Admin</button>
+      
     </section>
 
     <section id="personView" class="panel"></section>
@@ -481,7 +574,7 @@ select,
     <div class="modal-card">
       <div class="modal-head">
         <h2>Admin-Bereich</h2>
-        <button id="closeAdmin" class="close-btn" type="button">×</button>
+        <button id="closeAdmin" class="close-btn" type="button" onclick="document.getElementById('adminModal').classList.add('hidden')">×</button>
       </div>
 
       <div id="adminLogin">
@@ -556,6 +649,11 @@ pinForm.addEventListener("submit", function(event) {
     } catch (e) {}
     pinError.textContent = "";
     unlockSite();
+    loadOnlinePlan().catch(err => {
+      console.error(err);
+      allView.classList.remove("hidden");
+      allView.innerHTML = `<p>Fehler beim Laden des Dienstplans: ${err.message}</p>`;
+    });
   } else {
     pinError.textContent = "Falsche PIN.";
     pinInput.value = "";
@@ -818,7 +916,9 @@ function rebuildEmployeeSelects() {
   const selects = [document.getElementById("employeeSelect"), document.getElementById("adminEmployee")].filter(Boolean);
   for (const sel of selects) {
     const current = sel.value;
-    sel.innerHTML = sel.id === "employeeSelect" ? '<option value="all">Alle Mitarbeiter</option><option value="today">Wer arbeitet heute?</option>' : "";
+    sel.innerHTML = sel.id === "employeeSelect"
+      ? '<option value="all">Alle Mitarbeiter</option><option value="today">Wer arbeitet heute?</option>'
+      : "";
     for (const name of employees) {
       const o = document.createElement("option"); o.value = name; o.textContent = name; sel.appendChild(o);
     }
@@ -843,6 +943,39 @@ const weekdayLong = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Frei
 function getDayIndex(day) {
   const d = new Date(2026, 7, day);
   return d.getDay();
+}
+
+
+function buildTeamCalendar(currentName) {
+  let cards = "";
+
+  for (let i = 0; i < 3; i++) cards += `<div class="day empty"></div>`;
+
+  for (let day = 1; day <= 31; day++) {
+    if (isClosedDay(day)) continue;
+
+    const working = employees.filter(employee => plan[day]?.[employee]);
+    const namesHtml = working.length
+      ? working.map(employee =>
+          `<div class="team-name ${employee === currentName ? "me" : ""}">${employee}</div>`
+        ).join("")
+      : `<div class="team-empty">Niemand</div>`;
+
+    cards += `
+      <div class="team-day">
+        <div class="date-num">${String(day).padStart(2,"0")}.08.</div>
+        <div class="team-names">${namesHtml}</div>
+      </div>`;
+  }
+
+  return `
+    <div class="team-calendar-box">
+      <h3>Wer arbeitet wann?</h3>
+      <div class="calendar">
+        ${["Mi","Do","Fr","Sa","So"].map(w => `<div class="weekday">${w}</div>`).join("")}
+        ${cards}
+      </div>
+    </div>`;
 }
 
 function renderPerson(name) {
@@ -873,6 +1006,8 @@ function renderPerson(name) {
   }
 
   html += `</div>`;
+
+  html += buildTeamCalendar(name);
 
   const workEntries = [];
   for (let day = 1; day <= 31; day++) {
@@ -950,7 +1085,7 @@ function setupSwapUI(name) {
   document.getElementById("sendSwap").addEventListener("click", async () => {
     const msg = document.getElementById("swapMsg");
     try {
-      await api("/api/swap-requests", {
+      const result = await api("/api/swap-requests", {
         method: "POST",
         body: JSON.stringify({
           requester: name,
@@ -960,7 +1095,9 @@ function setupSwapUI(name) {
           note: document.getElementById("swapNote").value.trim()
         })
       });
-      msg.textContent = "Tauschvorschlag wurde an den Admin geschickt.";
+      msg.textContent = result.mail_sent
+        ? "Tauschvorschlag wurde gespeichert und der Admin per E-Mail benachrichtigt."
+        : "Tauschvorschlag wurde gespeichert. Die E-Mail-Benachrichtigung ist noch nicht eingerichtet.";
     } catch (e) {
       msg.textContent = "Fehler: " + e.message;
     }
@@ -977,6 +1114,11 @@ document.getElementById("adminBtn").addEventListener("click", () => {
   }
 });
 document.getElementById("closeAdmin").addEventListener("click", () => adminModal.classList.add("hidden"));
+
+adminModal.addEventListener("click", (event) => {
+  if (event.target === adminModal) adminModal.classList.add("hidden");
+});
+
 
 document.getElementById("adminLoginBtn").addEventListener("click", async () => {
   const msg = document.getElementById("adminLoginMsg");
@@ -1059,6 +1201,7 @@ async function rejectSwap(id) {
   await api(`/api/admin/swap-requests/${id}/reject`, { method: "POST", admin: true });
   await loadSwapRequests();
 }
+
 
 function renderToday() {
   const now = new Date();
