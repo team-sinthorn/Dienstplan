@@ -386,57 +386,46 @@ select,
 }
 
 
-.hero-actions{
+.today-box{
+  padding:6px 0 2px;
+}
+.today-box h2{
+  margin:0 0 6px;
+  font-family:Georgia,"Times New Roman",serif;
+}
+.today-date{
+  color:var(--muted);
+  font-size:13px;
+  margin-bottom:14px;
+}
+.today-list{
+  display:grid;
+  gap:8px;
+}
+.today-person{
   display:flex;
   align-items:center;
-  gap:10px;
-  position:relative;
-  z-index:2;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fffaf3;
 }
-.admin-icon-btn{
-  width:44px;
-  height:44px;
-  border:1px solid rgba(227,168,92,.35);
-  border-radius:14px;
-  background:rgba(217,133,31,.12);
-  color:#f1c27f;
-  font-size:21px;
-  display:grid;
-  place-items:center;
-  cursor:pointer;
-  backdrop-filter:blur(6px);
-}
-.admin-icon-btn:hover{
-  background:rgba(217,133,31,.20);
-}
-@media(max-width:650px){
-  .hero-actions{
-    align-self:flex-start;
-  }
-  .admin-icon-btn{
-    width:42px;
-    height:42px;
-    flex:0 0 42px;
-  }
-}
-
-
-.admin-text-btn{
-  width:auto !important;
-  min-width:72px;
-  padding:0 16px;
-  font-size:14px !important;
+.today-name{
   font-weight:800;
 }
-@media(max-width:650px){
-  .admin-text-btn{
-    width:auto !important;
-    min-width:68px;
-    flex:0 0 auto !important;
-    padding:0 13px;
-  }
+.today-time{
+  font-weight:900;
+  color:#c96f10;
 }
-
+.today-empty{
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fbf4ea;
+  color:var(--muted);
+}
 </style>
 
   <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
@@ -470,20 +459,16 @@ select,
         <h1>Dienstplan</h1>
         <p class="subtitle">Dienstplan für August 2026 – wähle einen Namen und sieh deine Startzeiten.</p>
       </div>
-      <div class="hero-actions">
-        <div class="month-badge">August 2026</div>
-        <button id="adminBtn" class="admin-icon-btn admin-text-btn" type="button" aria-label="Admin-Bereich öffnen" title="Admin">
-          Admin
-        </button>
-      </div>
+      <div class="month-badge">August 2026</div>
     </header>
 
     <section class="panel controls">
       <label for="employeeSelect">Mitarbeiter</label>
       <select id="employeeSelect">
         <option value="all">Alle Mitarbeiter</option>
+        <option value="today">Wer arbeitet heute?</option>
       </select>
-      
+      <button id="adminBtn" class="admin-btn" type="button">Admin</button>
     </section>
 
     <section id="personView" class="panel"></section>
@@ -496,7 +481,7 @@ select,
     <div class="modal-card">
       <div class="modal-head">
         <h2>Admin-Bereich</h2>
-        <button id="closeAdmin" class="close-btn" type="button" onclick="document.getElementById('adminModal').classList.add('hidden')">×</button>
+        <button id="closeAdmin" class="close-btn" type="button">×</button>
       </div>
 
       <div id="adminLogin">
@@ -571,11 +556,6 @@ pinForm.addEventListener("submit", function(event) {
     } catch (e) {}
     pinError.textContent = "";
     unlockSite();
-    loadOnlinePlan().catch(err => {
-      console.error(err);
-      allView.classList.remove("hidden");
-      allView.innerHTML = `<p>Fehler beim Laden des Dienstplans: ${err.message}</p>`;
-    });
   } else {
     pinError.textContent = "Falsche PIN.";
     pinInput.value = "";
@@ -838,7 +818,7 @@ function rebuildEmployeeSelects() {
   const selects = [document.getElementById("employeeSelect"), document.getElementById("adminEmployee")].filter(Boolean);
   for (const sel of selects) {
     const current = sel.value;
-    sel.innerHTML = sel.id === "employeeSelect" ? '<option value="all">Alle Mitarbeiter</option>' : "";
+    sel.innerHTML = sel.id === "employeeSelect" ? '<option value="all">Alle Mitarbeiter</option><option value="today">Wer arbeitet heute?</option>' : "";
     for (const name of employees) {
       const o = document.createElement("option"); o.value = name; o.textContent = name; sel.appendChild(o);
     }
@@ -998,11 +978,6 @@ document.getElementById("adminBtn").addEventListener("click", () => {
 });
 document.getElementById("closeAdmin").addEventListener("click", () => adminModal.classList.add("hidden"));
 
-adminModal.addEventListener("click", (event) => {
-  if (event.target === adminModal) adminModal.classList.add("hidden");
-});
-
-
 document.getElementById("adminLoginBtn").addEventListener("click", async () => {
   const msg = document.getElementById("adminLoginMsg");
   try {
@@ -1085,6 +1060,57 @@ async function rejectSwap(id) {
   await loadSwapRequests();
 }
 
+function renderToday() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-based
+  const day = now.getDate();
+
+  const weekday = weekdayLong[now.getDay()];
+  const dateLabel = `${String(day).padStart(2,"0")}.${String(month + 1).padStart(2,"0")}.${year}`;
+
+  let html = `
+    <div class="today-box">
+      <h2>Wer arbeitet heute?</h2>
+      <div class="today-date">${weekday}, ${dateLabel}</div>
+  `;
+
+  // Der aktuell geladene Plan ist August 2026.
+  if (year !== 2026 || month !== 7) {
+    html += `<div class="today-empty">Für den heutigen Tag ist in diesem Monatsplan kein Dienstplan geladen.</div></div>`;
+    allView.innerHTML = html;
+    return;
+  }
+
+  if (isClosedDay(day)) {
+    html += `<div class="today-empty">Heute ist geschlossen.</div></div>`;
+    allView.innerHTML = html;
+    return;
+  }
+
+  const working = employees
+    .filter(name => plan[day]?.[name])
+    .map(name => ({ name, time: plan[day][name] }))
+    .sort((a, b) => a.time.localeCompare(b.time) || a.name.localeCompare(b.name, "de"));
+
+  if (!working.length) {
+    html += `<div class="today-empty">Für heute ist niemand eingetragen.</div>`;
+  } else {
+    html += `<div class="today-list">`;
+    for (const person of working) {
+      html += `
+        <div class="today-person">
+          <span class="today-name">${person.name}</span>
+          <span class="today-time">${person.time} Uhr</span>
+        </div>`;
+    }
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  allView.innerHTML = html;
+}
+
 function renderAll() {
   let html = `<h2 style="margin-top:0">Alle Mitarbeiter</h2><table><thead><tr><th>Datum</th>`;
   employees.forEach(name => html += `<th>${name}</th>`);
@@ -1113,6 +1139,10 @@ function render() {
     personView.classList.add("hidden");
     allView.classList.remove("hidden");
     renderAll();
+  } else if (select.value === "today") {
+    personView.classList.add("hidden");
+    allView.classList.remove("hidden");
+    renderToday();
   } else {
     allView.classList.add("hidden");
     personView.classList.remove("hidden");
